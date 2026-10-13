@@ -48,7 +48,7 @@ The specification is the source of truth. It includes worked examples taken from
 
 ## Tech
 
-TypeScript · React (tentative) + Vite · PWA · IndexedDB · Vitest
+TypeScript · React + Vite · PWA · IndexedDB · Vitest
 
 ## Data and privacy
 

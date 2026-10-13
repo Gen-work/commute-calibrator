@@ -1,4 +1,4 @@
-# Specification v0.1
+# Specification v0.2
 
 ## First principle
 
@@ -25,14 +25,17 @@ Stage 1 is the recorder: logging is the core, and real samples are time-limited.
 
 | Term | Definition |
 | --- | --- |
-| checkpoint | A recordable point on the way: leave home, enter gate, reach platform, board, seated, alight, arrive. Each has a fixed event name |
+| checkpoint | A recordable point on the way. Two layers: **core** checkpoints have fixed event names the engine understands (leave, enter gate, reach platform, join queue, board, seated, alight, exit gate, arrive, check in); **custom** checkpoints are the user's own life steps (take out the rubbish, buy water, tie hair, wait for the lift), each hung between two core checkpoints. The engine and the open API only know the core layer. A custom checkpoint that keeps recurring (three times) is promoted to the core layer |
 | interval | Time between two adjacent checkpoints |
 | constant | The interval value the engine uses: default + measurements + sample count |
 | origin train | A train that starts at this station and arrives empty; people queueing can get seats |
 | lead | Minutes between joining the queue at your target car and departure. Only meaningful for origin trains |
-| route config | Home, workplace, commuter-pass section, sign-in deadline. Replaced when the workplace changes |
+| route config | Home, workplace, commuter-pass section, deadlines, checkpoint templates. Replaced when the workplace changes |
 | route knowledge | Rules learned for one specific route; not part of the engine |
-| deadline | When you must be inside the building (08:55 in the first fixture) |
+| soft deadline | Used for reminders only: "you are cutting it close" (08:55 in the first fixture) |
+| hard deadline | Used to judge lateness, measured at the check-in checkpoint (office sign-in), not at the building door (09:00 in the first fixture) |
+| grace | Minutes after the hard deadline that the workplace still accepts. Workplaces differ, so it is a config value. First fixture: at least 1 min (1 sample: signed in 1 min after the hard deadline, not counted late) |
+| tap time / reported time / inferred time | Three ways to know when a checkpoint happened. The true moment is a latent variable and can only be estimated. *Tap time*: when the button was pressed (system clock). *Reported time*: what the user says, e.g. "it was 07:43" typed later, with a precision. *Inferred time*: fitted from sensors (reserved) |
 | baseline | Samples from normal days used for constants; disruption days and holidays are excluded |
 
 ## Data model
@@ -53,7 +56,14 @@ type RouteConfig = {
   home: { label: string; lat: number; lng: number };
   workplace: { label: string; lat: number; lng: number };
   pass: { from: string; to: string; via: string[] };   // commuter-pass section
-  deadline: string;          // "08:55"
+  deadline: {
+    soft: string;            // "08:55" — reminders only
+    hard: string;            // "09:00" — lateness
+    graceMin: number;        // minutes after `hard` still accepted
+    judgedAt: string;        // checkpoint that lateness is measured at; default "CHECK_IN"
+  };
+  customCheckpoints: { id: string; label: string; between: [CoreEvent, CoreEvent] }[];  // records store `id`; `label` can be renamed
+  templates: Record<Direction, string[]>;              // ordered checkpoint ids; drives the recorder's "next" button
   seatPriority: number;      // 0 = fastest only, 20 = almost always wait for an origin train
 };
 
@@ -74,20 +84,55 @@ type Observation = {
   schemaVersion: number;     // record format version; old records are upgraded on read
   observer: Observer;
   source?: { url?: string; title?: string; publishedAt?: string };  // required for others/official
-  observedAt: string;
 };
 
+type Direction = "outbound" | "inbound";
+
+// Core checkpoints: fixed names, the engine knows what each one means
+type CoreEvent =
+  | "DEPART" | "GATE_IN" | "PLATFORM" | "QUEUE_START" | "BOARD"
+  | "SEATED" | "ALIGHT" | "GATE_OUT" | "ARRIVE" | "CHECK_IN";
+
+type TimePrecision = "exact" | "approx" | "estimated";
+
 type CheckpointEvent = Observation & {
+  id: string;                // `${sessionId}-${write time in ms}`
   sessionId: string;
-  event: string;             // "HOME_EXIT" | "GATE_IN" | "SEATED" | ...
-  place?: string; car?: string;
+  direction: Direction;
+  event: CoreEvent | string; // core event, or a custom checkpoint id from RouteConfig
+  tappedAt: string | null;   // when the button was pressed (system clock); was `observedAt` in v2. null = unknown
+  reportedAt?: string;       // when the user says it happened (typed later, a -1 / -5 min nudge, or told to an agent)
+  reportedPrecision?: TimePrecision;
+  reportedSource?: "tap-adjust" | "note" | "oral-report";
+  recordedBy: string | null; // who wrote the row: "self", or the agent that wrote it on the user's word (observer stays "self")
+  inferredAt?: string;       // fitted from sensors — reserved, not implemented
+  inferredMethod?: string;
+  confidence?: number;       // 0–1, for inferredAt
+  place?: string;            // station code from the route's list
+  placeFree?: string;        // typed name when the station is not in the list (place keeps the nearest listed one)
+  car?: string;
   trainId?: string;          // which train; enables automatic delay measurement
-  context?: string[];        // e.g. ["with-someone", "convenience-store"]
-  serviceStatus?: "normal" | "disrupted" | "holiday";
+  context?: string[];        // tag slugs, see "Context tags"
+  serviceStatus?: "normal" | "disrupted" | "holiday";   // as tapped at the time; never overwritten
+  serviceStatusCorrected?: "normal" | "disrupted" | "holiday";  // later correction, see "Service status"
+  correctionSource?: "self-report" | "calendar" | "delay-certificate";  // service-status corrections only; extendable
+  correctedBy?: string;      // who wrote the correction (the user, or an agent on their word)
+  correctedAt?: string;
   note?: string;
+  updatedAt: string;         // last write to this row
+  rev: number;               // incremented on every write; used to resolve sync conflicts
+};
+
+// Official delay information (delay certificates, operator notices) is its own observation
+type ServiceNotice = Observation & {   // observer: "official", dated by source.publishedAt
+  line: string;
+  from: string; to: string;  // time band it covers
+  status: "disrupted";
+  delayBand?: string;        // e.g. "61+ min", as published
 };
 
 type PlatformReport = Observation & {
+  tappedAt?: string;         // self reports; others/official are dated by source.publishedAt
   station: string; trainId?: string; car?: string;
   queueAhead?: number;       // people ahead at this door
   crowd?: "low" | "mid" | "high";
@@ -110,7 +155,44 @@ type TrainDelay = Derived<Range> & { trainId: string; station: string };
 type CarAdvice = Derived<{ car: string; reason: string }> & { station: string; trainId?: string };
 ```
 
+Every field is defined in [`FIELDS.md`](FIELDS.md), the one field dictionary shared with the temporary recorder (one dictionary, one version counter). If this section and the dictionary disagree, the dictionary wins.
+
 TypeScript types disappear at runtime and IndexedDB does not check fields, so every observation carries `schemaVersion` and is upgraded on read. Timetable and observation formats are kept independent: switching the timetable source only touches `Train`.
+
+**Which time the engine uses.** For each checkpoint the effective time is `inferredAt` (once its confidence passes a threshold), else `reportedAt`, else `tappedAt`. A tap often comes late ("seated" pressed minutes after sitting down), so a tap time only says the event happened *by then*. Lower precision means lower weight in derived values; the threshold and weights are open questions.
+
+**Corrections never overwrite.** Raw values stay as recorded. Anything learned later goes into a new field on the same row together with where it came from: a reported time with `reportedSource`, a service-status correction with `correctionSource`, `correctedBy` and `correctedAt`. There is no second copy of the data to drift apart.
+
+**Service status.** `serviceStatus` keeps what was tapped; `serviceStatusCorrected` says which rows a correction applies to, by kind:
+
+- `disrupted` is an observation: corrected from the row where the user noticed or recorded the disruption onward ("from now on"), not for the whole trip. Earlier rows keep their value. The recorder's delay button means "from now on"
+- `holiday` is a property of the whole day: every row of that day is corrected
+- Official delay information is stored as a separate `ServiceNotice`; it can be cited as a `correctionSource` but never widens a correction beyond the rule above
+
+**Schema evolution rules**
+
+- If a field's meaning changes, it gets a new name; old names are never reused
+- Every change bumps `schemaVersion`; old rows are upgraded on read and never rewritten
+- One field dictionary lists every field with a one-line definition and a change log
+- When the same kind of note shows up three times, it is promoted to a field
+- Backfilled values always say where they came from (`reportedSource` or `correctionSource`)
+
+| Version | Change | Upgrade on read |
+| --- | --- | --- |
+| v1 → v2 | `HOME_EXIT` renamed to `DEPART` | rename the event |
+| v2 → v3 | `observedAt` replaced by `tappedAt` / `reportedAt` / `inferredAt`; core event `CHECK_IN`; `direction` values; correction fields; `updatedAt` + `rev` on every row | `observedAt` → `tappedAt`; `direction` `"AM"` → `"outbound"`, `"PM"` → `"inbound"` (the letters are also inside v2 session ids); `updatedAt` ← `tappedAt`, `rev` ← 1; rows backfilled from what the user said: the stored time moves to `reportedAt` and `tappedAt` becomes the write time (or null if unknown) — full rules in FIELDS.md |
+
+**Context tags (first version).** Stored as slugs; the UI shows the label.
+
+| Slug | Label | Meaning |
+| --- | --- | --- |
+| `alone` | 独自 | Commuting alone |
+| `accompanied` | 同行 | Commuting with someone |
+| `convenience-store` | 便利店 | Stopped at a convenience store on the way |
+| `replying-messages` | 回消息 | Stopped to reply to messages or mail |
+| `missed-full-train` | 满员没上去 | A train was too full to board |
+| `unwell` | 身体不适 | Not feeling well |
+| `returned-for-item` | 忘东西折返 | Went back for something forgotten |
 
 ## Engine
 
@@ -130,9 +212,11 @@ plan(input: {
   options: {
     label: string;
     checkpoints: { event: string; at: string; note?: string }[];
-    arrival: string;
-    lateMin: number;         // > 0 means late; UI shows it in red
+    arrival: string;         // time at deadline.judgedAt (check-in)
+    lateMin: number;         // arrival − (hard + grace); > 0 means late; UI shows it in red
+    softMarginMin: number;   // soft − arrival; < 0 means past the soft deadline (reminder)
     seat: "high" | "untested" | "low" | "standing";
+    basis: { sampleCount: number; note: string };  // what the prediction rests on
   }[];
   recommended: number;
   reason: string;            // one sentence, written for the human
@@ -141,21 +225,32 @@ plan(input: {
 
 Ranking: drop options that would be late (if all are late, keep the least late), then maximise `-arrival + seatScore × seatPriority`.
 
+An option that goes back to an origin station is only generated when `config.pass` covers that station. Riding back past the edge of the pass without a ticket is fare evasion (in Japan the penalty totals about three times the fare); if the pass does not cover it, the option either includes the extra ticket or is not offered.
+
+## Reminders
+
+A reminder states a prediction, what it is based on, and how many samples — it never decides for the user and never blocks anything. When samples are few it says so plainly ("2 samples; may be wrong"). This tool is AI-driven and will make mistakes; the user stays the one who chooses.
+
 ## First fixture: route knowledge (masked)
 
-Stations are masked: **H** = home station, **O** = origin station one stop back from H, **T1** / **T2** = transfer stations, **W** = workplace station. Lines: **L** = local line H↔O, **R** = rapid line O→T1→T2, **Y** = loop line T1/T2→W.
+Stations are masked: **H** = home station, **O** = origin station one stop back from H, **T1** / **T2** = transfer stations, **W** = workplace station. Lines: **L** = local line H↔O, **R** = rapid line O→T1→T2 (it also runs downbound H→O), **Y** = loop line T1/T2→W. The commuter pass covers O, so going back to O needs no extra ticket.
+
+Deadlines: soft 08:55, hard 09:00 at office check-in, grace ≥ 1 min.
 
 | Rule | Evidence (masked sample count) | Status |
 | --- | --- | --- |
 | Only origin trains give a realistic chance of a seat; first in line on a non-origin train still stood | 2 samples | Confirmed |
 | Origin train, lead ≥ 10 min → seated | 5 of 5 (lead 10.6–14 min) | Confirmed (≥ 10) |
-| Lead 5–9 min → unknown | 1 inferred sample | Needs data |
+| Origin train, lead 5–9 min → seated so far | 2 measured, both seated (T1 evening origin, lead ≈ 9; the 07:52 from O, lead ≈ 9) + 1 inferred | Promising; needs data below 9 |
 | Go back to O for the 07:37 origin train only if through the H gate by 07:18 | 3 samples | Confirmed; the rapid line may push the cutoff later |
-| The 07:52 origin train is never an on-time option | Scheduled T2 arrival + measured delay → past deadline | Confirmed |
+| The 07:52 origin train from O is a tight option: rideable, check-in lands right at the hard deadline | 1 sample: T2 +1.7 min late, W gate 08:53, building 08:59, checked in 09:01, not counted late | Tight; usable as backup or even main route; needs delay samples |
+| To reach the 07:52: take R downbound H→O; that train turns back at O and becomes the 07:52 upbound origin. Get off as required, then re-queue on the same platform at a less crowded door — do not stay seated | 1 sample | Seen once; whether the turn-back runs every day is to be checked. If it does, the 07:18 cutoff can move later. The 07:52 queue *felt* shorter than the 07:37's — impression only, to be measured |
+| Route template: at W, record only the gate exit, not alighting | The two were often tapped in the same second | Applied to this route's template |
 | The 07:37 train reaches T2 1–7 min behind schedule | 3 samples (+6.9 / +1.2 / +6.0) | Default +5 |
+| At T2, if the first Y train is too full to board, the transfer takes 6.5 min | 1 sample; context tag `missed-full-train` | Needs data |
 | Boarding directly at H, avoid trains terminating at T1 | Forces a loop-line transfer, ~10 min longer than via T2 | Confirmed |
 | Limited expresses are not covered by the pass | Official timetable | Confirmed |
-| Holidays, reduced-service and heavy-rain days are excluded from baseline | 2 samples | Confirmed |
+| Holidays, reduced-service, heavy-rain and disrupted days are excluded from baseline | 3 samples (one disrupted morning: T2→W took 33 min vs 20 / 24 on normal days) | Confirmed |
 
 ## Cold start: a new place
 
@@ -164,7 +259,7 @@ With zero personal observations the engine has nothing to work with. Start from 
 1. The user says "I'm going to a new workplace X"
 2. An agent searches official data and guides, extracting each claim as *claim + source + date* (natural-language extraction)
 3. The user reviews; approved items are stored as `observer: "others"` or `"official"`
-4. The engine ranks two or three candidate routes
+4. The engine ranks two or three candidate routes. Before suggesting any route that goes back to an origin station, check that the commuter-pass section covers it (see Engine)
 5. The user tries each a few times and records
 6. Watch how quickly the user's own weight overtakes the others'
 
@@ -216,21 +311,32 @@ The recorder writes checkpoints to local storage; measured constants feed the en
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Language | TypeScript | One engine runs on the phone, the server, and for agents |
-| Front end | React (tentative) + Vite | Widely used; to be confirmed |
+| Front end | React + Vite | Widely used; decided |
 | Form | PWA | No store release, one codebase; cannot do background location |
 | Local storage | IndexedDB | Large enough, stays on the device. Not cookies: ~4 KB, sent with every request |
 | Timetable | Server-side scheduled scrape → versioned file | Browsers can't read the operator site directly (CORS); the app only compares version numbers |
 | Hosting | Cloudflare Pages or GitHub Pages; Supabase at Stage 5 | Free static hosting is enough for Stages 1–4 |
 | Tests | Vitest; the worked examples are the test cases | Same toolchain as Vite |
 
+## Later features
+
+**log your life, trick your life.** Rehearse the morning from the user's own commute log plus wake-up times (imported from a wearable through a bridge; this data stays on the device), then show a leave-by deadline slightly *earlier* than the real one, so the body starts moving sooner. For people who find time hard to sense, small tricks like this can help.
+
+- A fake deadline stops working once it is seen through, like a clock set fast. Ideas: a random offset within bounds, or not showing how big the offset is. This is an untested hunch, not a research finding
+- Reminders inform, never forbid (see Reminders)
+
 ## Open questions
 
-- [ ] Front-end framework: React tentative, Vue is gentler to learn
+- [x] Front-end framework: React
 - [ ] How constants are computed: draft = per context, median and range of the last 10 baseline samples; propose after 3 samples, apply after confirmation
-- [ ] Fixed list of context tags: draft a first version, merge after two weeks of use
+- [ ] Effective time: confidence threshold for `inferredAt`, and weights by precision
+- [ ] Cross-device sync (Stage 5): rows already carry `updatedAt` + `rev`; design the merge rule
+- [ ] Station picker must accept stations outside the route's list (a nearby station was once recorded as O because it was not in the list)
+- [ ] Example C must be revised now that the 07:52 is a tight option rather than a late one (proposal pending)
+- [ ] Context tags: first version above; review and merge after two weeks of use
 - [ ] Automatic gate timestamps: wallet transaction trigger (does a transit-card tap fire it immediately? to be tested); joining station Wi-Fi (coarse, early); geofence (coarse); sound recognition of the gate beep (other gates interfere). Weight by precision
 - [ ] Location precision: GPS can tell "home" from "near station H", not inside vs outside the gate or which platform
 - [ ] Whether the rapid line from H to O moves the 07:18 cutoff later
-- [ ] Lead 5–9 min: needs samples
+- [ ] Lead 5–9 min: 2 measured seated so far; needs samples below 9
 - [ ] Timetable redistribution: before any public data release, switch to ODPT or publish only the scraper
 - [ ] License
