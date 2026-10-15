@@ -52,5 +52,5 @@ TypeScript · React + Vite · PWA · IndexedDB · Vitest
 
 ## Data and privacy
 
-- Personal commute logs are **not** committed to this repository. The examples in the spec are masked (stations replaced with letters, dates removed, workplace unnamed).
+- Personal commute logs are **not** committed to this repository. The examples in the spec come from real logs with dates removed. The home-side stations are named (Funabashi and Tsudanuma, on the JR Sobu line); transfer stations and the workplace stay masked.
 - Timetable data is not committed. Before any public data release the source will move to a redistributable one (e.g. ODPT).

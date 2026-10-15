@@ -231,9 +231,9 @@ An option that goes back to an origin station is only generated when `config.pas
 
 A reminder states a prediction, what it is based on, and how many samples — it never decides for the user and never blocks anything. When samples are few it says so plainly ("2 samples; may be wrong"). This tool is AI-driven and will make mistakes; the user stays the one who chooses.
 
-## First fixture: route knowledge (masked)
+## First fixture: route knowledge
 
-Stations are masked: **H** = home station, **O** = origin station one stop back from H, **T1** / **T2** = transfer stations, **W** = workplace station. Lines: **L** = local line H↔O, **R** = rapid line O→T1→T2 (it also runs downbound H→O), **Y** = loop line T1/T2→W. The commuter pass covers O, so going back to O needs no extra ticket.
+Home-side stations are public: **H** = Funabashi (home station), **O** = Tsudanuma (origin station one stop back from H). The rest stay masked: **T1** / **T2** = transfer stations, **W** = workplace station. Lines: **L** = local line H↔O, **R** = rapid line O→T1→T2 (it also runs downbound H→O), **Y** = loop line T1/T2→W. The commuter pass covers O, so going back to O needs no extra ticket.
 
 Deadlines: soft 08:55, hard 09:00 at office check-in, grace ≥ 1 min.
 
@@ -281,7 +281,7 @@ With zero personal observations the engine has nothing to work with. Start from 
 
 ## Worked examples (acceptance tests)
 
-All three come from real logs, masked. An agent rebuilding the engine from this document alone must produce the *Expected* column.
+All three come from real logs; dates removed, stations by letter (H and O are named above). An agent rebuilding the engine from this document alone must produce the *Expected* column.
 
 ### A — plenty of time, origin train, seated
 
