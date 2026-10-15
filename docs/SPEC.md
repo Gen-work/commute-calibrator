@@ -223,7 +223,7 @@ plan(input: {
 }
 ```
 
-Ranking: drop options that would be late (if all are late, keep the least late), then maximise `-arrival + seatScore × seatPriority`.
+Ranking: drop options that would be late (if all are late, keep the least late), then maximise `-arrival + seatScore × seatPriority`. Ranking only decides `recommended`: late and tight options are still listed, each with its basis.
 
 An option that goes back to an origin station is only generated when `config.pass` covers that station. Riding back past the edge of the pass without a ticket is fare evasion (in Japan the penalty totals about three times the fare); if the pass does not cover it, the option either includes the extra ticket or is not offered.
 
@@ -297,12 +297,15 @@ All three come from real logs, masked. An agent rebuilding the engine from this 
 - Expected checkpoints: H gate 07:31 → depart 07:33 → T2 08:08 → Y 08:11 → W 08:24 → gate 08:27 → **building 08:34**; seat: standing
 - Measured: gate 07:31, seated after T1, W exit 08:31
 
-### C — already too late to go back to O (regression test)
+### C — already too late to go back to O for the 07:37 (regression test)
 
 - Input: weekday, `now = 07:26`, `position = STATION_H`
-- Expected recommendation: board the 07:30 or 07:33 rapid at H + green car, **building ≈ 08:31–08:34**
-- Expected **not** recommended: the 07:52 origin train from O — even if the user asked for a seat, `lateMin > 0` (building ≥ 08:57); must be shown in red, with `reason` explaining "07:37 is no longer reachable (L arrives O at 07:35, only 2 min); 07:52 would be late"
-- Measured: went back to O, sat on the 07:52, about 5 min late. The point: **a seat request must not override the deadline** when an on-time seated option (direct + green car) exists
+- Expected: both options listed
+    1. **Recommended**: board the 07:30 or 07:33 rapid at H + green car, **building ≈ 08:31–08:34**, check-in with margin
+    2. **Tight**: go back to O for the 07:52 origin train; seat high; check-in ≈ 09:00–09:01, right at the hard deadline + grace, `softMarginMin < 0`. Basis: 2 samples, one good and one bad (one about 5 min past the soft deadline; one checked in at 09:01, not counted late)
+- `reason`: "07:37 is no longer reachable (L arrives O at 07:35, only 2 min); the 07:52 gives a seat but is tight — 2 samples, one good, one bad"
+- Measured: went back to O, sat on the 07:52, about 5 min past the soft deadline
+- The point: **a tight option is always listed with its risk and sample count, never hidden; when its margin is within the grace, it is never silently ranked above an option that has margin.** The user decides
 
 ## Architecture and tech
 
@@ -332,7 +335,6 @@ The recorder writes checkpoints to local storage; measured constants feed the en
 - [ ] Effective time: confidence threshold for `inferredAt`, and weights by precision
 - [ ] Cross-device sync (Stage 5): rows already carry `updatedAt` + `rev`; design the merge rule
 - [ ] Station picker must accept stations outside the route's list (a nearby station was once recorded as O because it was not in the list)
-- [ ] Example C must be revised now that the 07:52 is a tight option rather than a late one (proposal pending)
 - [ ] Context tags: first version above; review and merge after two weeks of use
 - [ ] Automatic gate timestamps: wallet transaction trigger (does a transit-card tap fire it immediately? to be tested); joining station Wi-Fi (coarse, early); geofence (coarse); sound recognition of the gate beep (other gates interfere). Weight by precision
 - [ ] Location precision: GPS can tell "home" from "near station H", not inside vs outside the gate or which platform
