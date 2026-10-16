@@ -50,6 +50,17 @@ The specification is the source of truth. It includes worked examples taken from
 
 TypeScript · React + Vite · PWA · IndexedDB · Vitest
 
+## Development
+
+Requires Node.js 22.12 or later.
+
+```sh
+npm install
+npm test          # Vitest, run once
+npm run dev       # local dev server
+npm run build     # typecheck + production build into dist/
+```
+
 ## Data and privacy
 
 - Personal commute logs are **not** committed to this repository. The examples in the spec come from real logs with dates removed. The home-side stations are named (Funabashi and Tsudanuma, on the JR Sobu line); transfer stations and the workplace stay masked.
