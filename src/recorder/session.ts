@@ -128,10 +128,24 @@ export function buildRow(input: TapInput): StoredRow {
 
 const DEFAULT_TAGS = Object.values(CONTEXT_SLUGS);
 
+/** 这一行的全部标签：按下之前点的 ＋ 按完补的 */
+export function allTags(e: CheckpointEvent): string[] {
+  return [...new Set([...(e.context ?? []), ...(e.contextAdded ?? [])])];
+}
+
+/**
+ * 按完之后补一个标签 → 新的 contextAdded（只加不减）。
+ * 已经在 context 或 contextAdded 里的不重复加，返回 null 表示不用写。
+ */
+export function addTag(e: CheckpointEvent, tag: string): string[] | null {
+  if (allTags(e).includes(tag)) return null;
+  return [...(e.contextAdded ?? []), tag];
+}
+
 /** 按过去用过的次数排出常用标签，取前 n 个；用得少时用默认顺序补齐 */
 export function topTags(rows: CheckpointEvent[], n = 5): string[] {
   const count = new Map<string, number>();
-  for (const r of rows) for (const c of r.context ?? []) count.set(c, (count.get(c) ?? 0) + 1);
+  for (const r of rows) for (const c of allTags(r)) count.set(c, (count.get(c) ?? 0) + 1);
   const used = [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
   const rest = DEFAULT_TAGS.filter((t) => !used.includes(t));
   return [...used, ...rest].slice(0, n);
