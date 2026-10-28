@@ -85,3 +85,33 @@
 | 普通按键行 | observedAt | 备注里能解析出时刻就填 | 按备注：纯数字 exact，「左右」「大概」approx | note | self |
 | 备注以「事后补记」开头，且 id 尾部毫秒 ≠ observedAt | id 尾部毫秒 | observedAt | 备注写「分精度」→ exact；「时刻约」→ approx | oral-report | 备注写「雨会代记」→ 雨会，否则 self |
 | 备注以「事后补记」开头，且 id 尾部毫秒 ＝ observedAt（合成 id） | null | observedAt | 同上 | oral-report | 未知（null） |
+
+### 备注里的时刻怎么认（普通按键行）
+
+- 认：「0743」「743」「7:43」「18:41:48」；带「左右」「大概」「约」的记 approx，否则 exact
+- 认：「—40s」「-40s」＝实际比按键早 40 秒，记 exact
+- 不认：两位数字；「11号车」；后面跟「的车」「发」「発」的车次时刻（如「1948的车」）
+- 合理范围：解析出的时刻最多比按键早 90 分、晚 5 分，超出就当作不是自报时刻
+- 日期取按键时刻在当地时区（+09:00）的那一天
+- 带时区写法的 observedAt（如 `+09:00`）读时统一成 UTC 的 `Z` 形式
+
+## 打卡器 v7 新增（草稿，schemaVersion 待定）
+
+临时记录器 v7 已经开始写这些字段；正式版先原样保留、读时不报错，定稿后再升版本并写迁移。
+
+| 字段 | 类型 | 定义 |
+|---|---|---|
+| seat | enum | 坐没坐到。主要在 SEATED 行；一程结束自查时也可能补在 BOARD 行上 |
+| reportedOffsetSec | int | 补时：实际时刻比按键早（负）或晚（正）多少秒。有它时 reportedAt ＝ tappedAt ＋ 这个值 |
+| reportedSource | enum | 新增取值：manual-edit（点行改时刻）、self-check（一程结束自查时补） |
+| placeSource | enum | 站名从哪来：fixed（路线上必然是这一站）／same-as-prev（和上一行同站）／history（按历史猜）／gps／manual／self-check |
+| placeGuessed | bool | 站名是猜的，界面上标「猜的」 |
+| geo | object | 定位只存精度、到最近站的距离、最近站代号，**不存坐标** |
+| transfer | bool | 这次上车是换乘 |
+| uiVersion | string | 写这一行时的记录器版本，如 `v7` |
+| autoTrigger | string | 快捷指令自动打点的来源，如 `auto-leave-home` |
+| observer | enum | 新增取值：device（快捷指令等设备自动观测）；这时 recordedBy 写快捷指令 |
+| reviewNote／reviewSource／reviewedBy／reviewedAt | string／enum／string／ISO 时刻 | 事后复核：复核意见、依据、谁、何时。原值不动 |
+
+待定：`seat` 的取值（got／none／partway 之类）、`reviewSource` 的取值，等打卡器 v7 定稿后对齐。
+
