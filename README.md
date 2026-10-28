@@ -4,7 +4,24 @@ A personal commute planner that gets more accurate the more you use it.
 
 Timetables are public data — anyone can scrape them. What nobody else has is *your* numbers: how long it really takes you to get from your door to the ticket gate, how often the 07:37 actually runs late, which car you can still get a seat in if you join the queue ten minutes early. This project is built around collecting those numbers and feeding them back into the plan.
 
-> **Status:** design phase. The specification is written; implementation starts with the recorder (Stage 1). See [`docs/SPEC.md`](docs/SPEC.md).
+> **Status:** the data → prediction proof of concept has passed (two agents planned real mornings from the recorded data alone; see [`docs/VALIDATION.md`](docs/VALIDATION.md)). In this repository: spec v0.2, the shared field dictionary, the app scaffold and the data layer (types, read-time migration, append-only IndexedDB store, 41 tests). Next: the recorder UI, importing the temporary recorder's data, then the engine.
+
+## What has been validated
+
+| What | Result | Where |
+| --- | --- | --- |
+| Can someone plan a morning from this data alone? | Yes, twice: one agent with no project context, one with full context; both chose the route the owner wanted and got check-in time within a few minutes | [`docs/VALIDATION.md`](docs/VALIDATION.md) |
+| Is it reliable? | Not yet shown: one run each, and the two erred in opposite directions | same |
+| Can the recording be done on a crowded train? | It took three redesigns of the temporary recorder (thumb-zone buttons, press-and-slide time nudge, next step chosen from what just happened) | [`docs/RECORDER.md`](docs/RECORDER.md) |
+
+## Documents
+
+| File | What it holds |
+| --- | --- |
+| [`docs/SPEC.md`](docs/SPEC.md) | Specification: data model, engine contract, route knowledge, worked examples (acceptance tests) |
+| [`docs/FIELDS.md`](docs/FIELDS.md) | Field dictionary shared with the temporary recorder (one schema, one version counter) |
+| [`docs/VALIDATION.md`](docs/VALIDATION.md) | Every prediction and what actually happened |
+| [`docs/RECORDER.md`](docs/RECORDER.md) | How the recorder was designed, phone automations, the "observations, not facts" principle |
 
 ## Core idea: a self-calibration loop
 
@@ -36,6 +53,14 @@ When you move somewhere new you have zero personal data. An agent searches offic
 The specification is the source of truth. It includes worked examples taken from real (masked) commute logs, written as *given this input → expect this output*. They double as acceptance tests: another agent rebuilding the engine from the spec alone must reproduce them.
 
 ## Roadmap
+
+**Near term**
+
+1. Repeat the prediction test with other agents that only read the data, and log every prediction against what happened
+2. Before the next workplace starts, make recording more passive (recorder v7 + phone automations), then run the cold start there: official timetables and other people's experience first, the owner's own data taking over as it accumulates
+3. Build the production recorder UI, import the temporary recorder's data, then the engine — the worked examples in the spec become its first failing tests
+
+**Stages**
 
 | Stage | Scope |
 | --- | --- |

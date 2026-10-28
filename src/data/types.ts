@@ -2,7 +2,7 @@
 
 export const CURRENT_SCHEMA_VERSION = 3;
 
-export type Observer = 'self' | 'others' | 'official';
+export type Observer = 'self' | 'device' | 'others' | 'official'; // device：快捷指令等自动观测
 
 export type Direction = 'outbound' | 'inbound';
 

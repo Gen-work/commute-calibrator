@@ -78,7 +78,7 @@ type Train = {
 };
 
 // ── Observations ──
-type Observer = "self" | "others" | "official";
+type Observer = "self" | "device" | "others" | "official";   // device = a phone automation
 
 type Observation = {
   schemaVersion: number;     // record format version; old records are upgraded on read
@@ -158,6 +158,8 @@ type CarAdvice = Derived<{ car: string; reason: string }> & { station: string; t
 Every field is defined in [`FIELDS.md`](FIELDS.md), the one field dictionary shared with the temporary recorder (one dictionary, one version counter). If this section and the dictionary disagree, the dictionary wins.
 
 TypeScript types disappear at runtime and IndexedDB does not check fields, so every observation carries `schemaVersion` and is upgraded on read. Timetable and observation formats are kept independent: switching the timetable source only touches `Train`.
+
+**Observations, not facts.** A row records who observed what, how and when; it is not the fact itself. The effective time, lateness and service status are views derived from several observations. The same pattern repeats across fields: a raw value plus a separate corrected or inferred value with its source (`serviceStatus` + `serviceStatusCorrected`, `place` + `placeSource`, review fields). Background and the recorder's design history: [RECORDER.md](RECORDER.md).
 
 **Which time the engine uses.** For each checkpoint the effective time is `inferredAt` (once its confidence passes a threshold), else `reportedAt`, else `tappedAt`. A tap often comes late ("seated" pressed minutes after sitting down), so a tap time only says the event happened *by then*. Lower precision means lower weight in derived values; the threshold and weights are open questions.
 
@@ -240,10 +242,10 @@ Deadlines: soft 08:55, hard 09:00 at office check-in, grace ≥ 1 min.
 | Rule | Evidence (masked sample count) | Status |
 | --- | --- | --- |
 | Only origin trains give a realistic chance of a seat; first in line on a non-origin train still stood | 2 samples | Confirmed |
-| Origin train, lead ≥ 10 min → seated | 5 of 5 (lead 10.6–14 min) | Confirmed (≥ 10) |
+| Origin train, lead ≥ 10 min → seated | 5 of 5 (lead 10.6–14 min); later, two mornings without a seat, one of them already queueing at O by 07:35 | Confirmed (≥ 10), **under review**: if that queue was for the 07:52 it is a counterexample (see [VALIDATION.md](VALIDATION.md)) |
 | Origin train, lead 5–9 min → seated so far | 2 measured, both seated (T1 evening origin, lead ≈ 9; the 07:52 from O, lead ≈ 9) + 1 inferred | Promising; needs data below 9 |
 | Go back to O for the 07:37 origin train only if through the H gate by 07:18 | 3 samples | Confirmed; the rapid line may push the cutoff later |
-| The 07:52 origin train from O is a tight option: rideable, check-in lands right at the hard deadline | 1 sample: T2 +1.7 min late, W gate 08:53, building 08:59, checked in 09:01, not counted late | Tight; usable as backup or even main route; needs delay samples |
+| The 07:52 origin train from O is a tight option: rideable, check-in lands right at the hard deadline | 1 sample: T2 +1.7 min late, W gate 08:53, building 08:59, checked in 09:01, not counted late; later 3 complete days checked in 09:05–09:06 | Tight; usable as backup or even main route; needs delay samples |
 | To reach the 07:52: take R downbound H→O; that train turns back at O and becomes the 07:52 upbound origin. Get off as required, then re-queue on the same platform at a less crowded door — do not stay seated | 1 sample | Seen once; whether the turn-back runs every day is to be checked. If it does, the 07:18 cutoff can move later. The 07:52 queue *felt* shorter than the 07:37's — impression only, to be measured |
 | Route template: at W, record only the gate exit, not alighting | The two were often tapped in the same second | Applied to this route's template |
 | The 07:37 train reaches T2 1–7 min behind schedule | 3 samples (+6.9 / +1.2 / +6.0) | Default +5 |
@@ -331,6 +333,8 @@ The recorder writes checkpoints to local storage; measured constants feed the en
 ## Open questions
 
 - [x] Front-end framework: React
+- [ ] Grace at the first workplace: the 07:52 route later checked in at 09:05–09:06 on 3 days — were those counted late? This sets `graceMin`
+- [ ] Lead ≥ 10 min rule: possible counterexample (see VALIDATION.md)
 - [ ] How constants are computed: draft = per context, median and range of the last 10 baseline samples; propose after 3 samples, apply after confirmation
 - [ ] Effective time: confidence threshold for `inferredAt`, and weights by precision
 - [ ] Cross-device sync (Stage 5): rows already carry `updatedAt` + `rev`; design the merge rule
