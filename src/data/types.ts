@@ -74,10 +74,16 @@ export type CheckpointEvent = {
   uiVersion?: string;
   autoTrigger?: string;
   reportedOffsetSec?: number;
+  reviewNote?: string; // 如「自查：这几条是一起补按的」
+  reviewSource?: ReviewSource;
+  reviewedBy?: string; // 'self' 或代记的 agent 名
+  reviewedAt?: string;
 };
 
-/** 坐没坐到。「中途坐下」＝先记 none、后来再记一次 seated，不另设取值 */
-export type SeatOutcome = 'seated' | 'none';
+/** 坐没坐到。midway＝中途坐下（通常先记 none，坐下时再记一行 midway）。临时记录器也用这三个值 */
+export type SeatOutcome = 'seated' | 'none' | 'midway';
+/** 事后复核的依据：self-check＝一程结束后本人自查；oral-report＝事后问本人、由 agent 代记 */
+export type ReviewSource = 'self-check' | 'oral-report';
 export type PlaceSource = 'fixed' | 'same-as-prev' | 'history' | 'gps' | 'manual' | 'self-check';
 
 /** 事后可以追加的字段。原值字段一律不在这里，写不进去 */
@@ -94,6 +100,10 @@ export const ANNOTATION_FIELDS = [
   'correctionSource',
   'correctedBy',
   'correctedAt',
+  'reviewNote',
+  'reviewSource',
+  'reviewedBy',
+  'reviewedAt',
 ] as const;
 export type AnnotationField = (typeof ANNOTATION_FIELDS)[number];
 export type Annotation = Partial<Pick<CheckpointEvent, AnnotationField>>;

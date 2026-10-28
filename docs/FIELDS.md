@@ -101,7 +101,7 @@
 
 | 字段 | 类型 | 定义 |
 |---|---|---|
-| seat | enum | 坐没坐到：样本里出现过 `seated`（坐到了）、`none`（没座）；「中途坐下」的取值待定。主要在 SEATED 行；一程结束自查时也可能补在 BOARD 行上 |
+| seat | enum | 坐没坐到：`seated`（坐到了）／`none`（没座）／`midway`（中途坐下，通常先有一行 none）。主要在 SEATED 行；一程结束自查时补的写在 BOARD 行上 |
 | reportedOffsetSec | int | 补时：实际时刻比按键早（负）或晚（正）多少秒。有它时 reportedAt ＝ tappedAt ＋ 这个值 |
 | reportedSource | enum | 新增取值：manual-edit（点行改时刻）、self-check（一程结束自查时补） |
 | placeSource | enum | 站名从哪来：fixed（路线上必然是这一站）／same-as-prev（和上一行同站）／history（按历史猜）／gps／manual／self-check |
@@ -113,5 +113,9 @@
 | observer | enum | 新增取值：device（快捷指令等设备自动观测）；这时 recordedBy 写快捷指令 |
 | reviewNote／reviewSource／reviewedBy／reviewedAt | string／enum／string／ISO 时刻 | 事后复核：复核意见、依据、谁、何时。原值不动 |
 
-待定：`seat` 里「中途坐下」的取值、`reviewSource` 的全部取值（样本里出现过 `oral-report`），等打卡器 v7 定稿后对齐。
+复核字段的取值：
+
+- `reviewSource`：`self-check`（一程结束后的自查卡，本人回答）／`oral-report`（事后问本人、由 agent 代记）
+- `reviewedBy`：`self`（自查）或代记的 agent 名
+- `reviewNote`：自由文字。自查卡的固定写法有「自查：这几条是一起补按的」「自查：不是补按」「自查：坐没坐到不记得」「自查：站名不记得」「自查：终点不记得」
 

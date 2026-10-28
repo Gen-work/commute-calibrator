@@ -62,7 +62,7 @@ export function nextOptions(session: CheckpointEvent[], direction: Direction): N
       ];
     case 'SEATED':
       return last.seat === 'none'
-        ? [opt('ALIGHT', direction, false), { ...opt('SEATED', direction, false, { seat: 'seated' }), label: '中途坐下' }]
+        ? [opt('ALIGHT', direction, false), { ...opt('SEATED', direction, false, { seat: 'midway' }), label: '中途坐下' }]
         : [opt('ALIGHT', direction, false)];
     case 'ALIGHT':
       return [

@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { openEventStore, type EventStore } from './data/db';
-import { CORE_EVENTS, type CheckpointEvent, type Direction } from './data/types';
+import { CORE_EVENTS, type CheckpointEvent, type Direction, type SeatOutcome } from './data/types';
 import { toJson, toTsv } from './recorder/export';
 import { eventLabel, nextOptions, sessionEnded, type NextOption } from './recorder/next';
 import {
@@ -23,6 +23,8 @@ import { effectiveTime } from './data/db';
 import './App.css';
 
 type Pending = { option: NextOption; atMs: number };
+
+const SEAT_LABEL: Record<SeatOutcome, string> = { seated: '坐到了', none: '没座', midway: '中途坐下' };
 
 export function App() {
   const [store, setStore] = useState<EventStore | null>(null);
@@ -210,7 +212,7 @@ export function App() {
                     </button>
                   )}
                   <span className="what">
-                    {e.event === 'SEATED' ? (e.seat === 'none' ? '没座' : '坐到了') : eventLabel(e.event, e.direction)}
+                    {e.event === 'SEATED' ? SEAT_LABEL[e.seat ?? 'seated'] : eventLabel(e.event, e.direction)}
                     {e.transfer && '（换乘）'}
                   </span>
                   {e.place && <span className="place">{e.place}</span>}

@@ -30,7 +30,7 @@ Both picked the route the owner actually wanted, and both check-in windows conta
 | Back to O, 07:52 origin train, seated | 3 | 09:05–09:06 |
 | Direct rapid from H, standing | 2 | 08:59, 09:01 |
 
-**Checked:** on one of the no-seat mornings the owner was already at O by 07:35. The record shows the queue started at 07:35:40 and "no seat" at 07:36, so it was the 07:37 (lead ≈ 1.5 min) — not a counterexample to "origin train, lead ≥ 10 min → seated". The 09:05–09:06 check-ins were not treated as late at the first workplace (grace ≥ 6 min there).
+**Checked:** on one of the no-seat mornings the owner was already at O by 07:35. The record does not name the train, but the queue started at 07:35:40 and "no seat" came at 07:36 — boarding within a minute, which fits a train already waiting, not a 17-minute queue. The owner confirmed it was the 07:37 (lead ≈ 1.5 min) — not a counterexample to "origin train, lead ≥ 10 min → seated". The 09:05–09:06 check-ins were not treated as late at the first workplace (grace ≥ 6 min there).
 
 ## Next
 

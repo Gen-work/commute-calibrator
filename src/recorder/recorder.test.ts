@@ -35,8 +35,14 @@ describe('nextOptions：按刚发生了什么给下一步', () => {
     expect(opts([tap('BOARD', T0)])).toEqual(['坐到了', '没座', '下车']);
   });
 
-  it('没座之后还能中途坐下', () => {
-    expect(opts([tap('BOARD', T0), tap('SEATED', T0 + min, { seat: 'none' })])).toEqual(['下车', '中途坐下']);
+  it('没座之后还能中途坐下，记成 midway（和临时记录器一致）', () => {
+    const o = nextOptions([tap('BOARD', T0), tap('SEATED', T0 + min, { seat: 'none' })], 'outbound');
+    expect(o.map((x) => x.label)).toEqual(['下车', '中途坐下']);
+    expect(o[1]?.seat).toBe('midway');
+  });
+
+  it('中途坐下之后只剩下车', () => {
+    expect(opts([tap('SEATED', T0, { seat: 'none' }), tap('SEATED', T0 + min, { seat: 'midway' })])).toEqual(['下车']);
   });
 
   it('下车之后：出改札／换乘上车，都和上一条同站', () => {
@@ -114,7 +120,7 @@ describe('90 秒去重', () => {
 
   it('「没座」之后马上「中途坐下」不算重复', () => {
     const s = [tap('SEATED', T0, { seat: 'none' })];
-    expect(isDuplicate(s, 'SEATED', T0 + 30_000, 'seated')).toBe(false);
+    expect(isDuplicate(s, 'SEATED', T0 + 30_000, 'midway')).toBe(false);
     expect(isDuplicate(s, 'SEATED', T0 + 30_000, 'none')).toBe(true);
   });
 });
