@@ -1,0 +1,280 @@
+/* 手机竖屏优先。按钮都在屏幕下半部，拇指够得着 */
+
+:root {
+  --bg: #f6f7f5;
+  --fg: #1d2420;
+  --muted: #66706a;
+  --line: #d8ddd9;
+  --card: #ffffff;
+  --accent: #2e6a54;
+  --accent-fg: #ffffff;
+  --soft: #e3eee8;
+  --warn: #8a4b12;
+  --warn-bg: #fbeedd;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141816;
+    --fg: #e6ebe8;
+    --muted: #98a39d;
+    --line: #2d3531;
+    --card: #1c2220;
+    --accent: #5fb391;
+    --accent-fg: #0d1512;
+    --soft: #23332c;
+    --warn: #f0b77a;
+    --warn-bg: #3a2a18;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, 'Hiragino Sans', 'PingFang SC', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+input {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+  width: 100%;
+}
+
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 0;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.top h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.seg {
+  display: flex;
+}
+
+.seg button {
+  border-radius: 0;
+  min-width: 64px;
+}
+
+.seg button:first-child {
+  border-radius: 10px 0 0 10px;
+}
+
+.seg button:last-child {
+  border-radius: 0 10px 10px 0;
+  border-left: none;
+}
+
+[aria-pressed='true'] {
+  background: var(--soft);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.error {
+  background: var(--warn-bg);
+  color: var(--warn);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.log {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+.session {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 4px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.log li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+
+.time-edit {
+  width: 7.5em;
+  min-height: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mark {
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-left: 4px;
+}
+
+.what {
+  font-weight: 600;
+}
+
+.place,
+.note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tag {
+  font-size: 0.75rem;
+  background: var(--soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.tools {
+  color: var(--muted);
+  padding: 4px 0 8px;
+}
+
+.tools button {
+  margin: 8px 8px 0 0;
+}
+
+.thumb {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips button {
+  border-radius: 999px;
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.secondary {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+
+.secondary button {
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+
+.primary {
+  min-height: 96px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: 16px;
+}
+
+.other summary {
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+.other .all {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.other .custom {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}

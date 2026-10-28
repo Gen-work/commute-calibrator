@@ -63,7 +63,7 @@ type RouteConfig = {
     judgedAt: string;        // checkpoint that lateness is measured at; default "CHECK_IN"
   };
   customCheckpoints: { id: string; label: string; between: [CoreEvent, CoreEvent] }[];  // records store `id`; `label` can be renamed
-  templates: Record<Direction, string[]>;              // ordered checkpoint ids; drives the recorder's "next" button
+  templates: Record<Direction, string[]>;              // ordered checkpoint ids; the usual route, for the engine. The recorder's "next" button follows the last event instead (recorder v7)
   seatPriority: number;      // 0 = fastest only, 20 = almost always wait for an origin train
 };
 
@@ -237,12 +237,12 @@ A reminder states a prediction, what it is based on, and how many samples — it
 
 Home-side stations are public: **H** = Funabashi (home station), **O** = Tsudanuma (origin station one stop back from H). The rest stay masked: **T1** / **T2** = transfer stations, **W** = workplace station. Lines: **L** = local line H↔O, **R** = rapid line O→T1→T2 (it also runs downbound H→O), **Y** = loop line T1/T2→W. The commuter pass covers O, so going back to O needs no extra ticket.
 
-Deadlines: soft 08:55, hard 09:00 at office check-in, grace ≥ 1 min.
+Deadlines: soft 08:55, hard 09:00 at office check-in, grace ≥ 6 min (check-ins at 09:05–09:06 were not treated as late).
 
 | Rule | Evidence (masked sample count) | Status |
 | --- | --- | --- |
 | Only origin trains give a realistic chance of a seat; first in line on a non-origin train still stood | 2 samples | Confirmed |
-| Origin train, lead ≥ 10 min → seated | 5 of 5 (lead 10.6–14 min); later, two mornings without a seat, one of them already queueing at O by 07:35 | Confirmed (≥ 10), **under review**: if that queue was for the 07:52 it is a counterexample (see [VALIDATION.md](VALIDATION.md)) |
+| Origin train, lead ≥ 10 min → seated | 5 of 5 (lead 10.6–14 min). Two later no-seat mornings both had a short lead (one queued for the 07:37 with lead ≈ 1.5 min) | Confirmed (≥ 10) |
 | Origin train, lead 5–9 min → seated so far | 2 measured, both seated (T1 evening origin, lead ≈ 9; the 07:52 from O, lead ≈ 9) + 1 inferred | Promising; needs data below 9 |
 | Go back to O for the 07:37 origin train only if through the H gate by 07:18 | 3 samples | Confirmed; the rapid line may push the cutoff later |
 | The 07:52 origin train from O is a tight option: rideable, check-in lands right at the hard deadline | 1 sample: T2 +1.7 min late, W gate 08:53, building 08:59, checked in 09:01, not counted late; later 3 complete days checked in 09:05–09:06 | Tight; usable as backup or even main route; needs delay samples |
@@ -333,8 +333,7 @@ The recorder writes checkpoints to local storage; measured constants feed the en
 ## Open questions
 
 - [x] Front-end framework: React
-- [ ] Grace at the first workplace: the 07:52 route later checked in at 09:05–09:06 on 3 days — were those counted late? This sets `graceMin`
-- [ ] Lead ≥ 10 min rule: possible counterexample (see VALIDATION.md)
+- [x] Grace at the first workplace: check-ins at 09:05–09:06 were not treated as late, so `graceMin` ≥ 6 there
 - [ ] How constants are computed: draft = per context, median and range of the last 10 baseline samples; propose after 3 samples, apply after confirmation
 - [ ] Effective time: confidence threshold for `inferredAt`, and weights by precision
 - [ ] Cross-device sync (Stage 5): rows already carry `updatedAt` + `rev`; design the merge rule
