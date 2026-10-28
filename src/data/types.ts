@@ -22,7 +22,7 @@ export const CORE_EVENTS = [
 export type CoreEvent = (typeof CORE_EVENTS)[number];
 
 export type TimePrecision = 'exact' | 'approx' | 'estimated';
-export type ReportedSource = 'tap-adjust' | 'note' | 'oral-report';
+export type ReportedSource = 'tap-adjust' | 'note' | 'oral-report' | 'manual-edit' | 'self-check';
 export type ServiceStatus = 'normal' | 'disrupted' | 'holiday';
 export type CorrectionSource = 'self-report' | 'calendar' | 'delay-certificate';
 
@@ -66,7 +66,19 @@ export type CheckpointEvent = {
   note?: string;
   updatedAt: string;
   rev: number;
+  // ── 打卡器 v7 草稿字段（docs/FIELDS.md 末尾）。定稿前不升 schemaVersion，临时记录器也这样写 ──
+  seat?: SeatOutcome;
+  transfer?: boolean;
+  placeSource?: PlaceSource;
+  placeGuessed?: boolean;
+  uiVersion?: string;
+  autoTrigger?: string;
+  reportedOffsetSec?: number;
 };
+
+/** 坐没坐到。「中途坐下」＝先记 none、后来再记一次 seated，不另设取值 */
+export type SeatOutcome = 'seated' | 'none';
+export type PlaceSource = 'fixed' | 'same-as-prev' | 'history' | 'gps' | 'manual' | 'self-check';
 
 /** 事后可以追加的字段。原值字段一律不在这里，写不进去 */
 export const ANNOTATION_FIELDS = [
