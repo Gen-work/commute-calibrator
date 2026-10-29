@@ -4,6 +4,8 @@ import type { CheckpointEvent } from '../data/types';
 import { toJson, toTsv } from './export';
 import { nextOptions, sessionEnded } from './next';
 import {
+  addTag,
+  allTags,
   buildRow,
   currentSession,
   defaultDirection,
@@ -152,6 +154,34 @@ describe('写入的一行', () => {
   it('没填的字段不写', () => {
     const row = buildRow({ sessionId: 'S', direction: 'outbound', event: 'DEPART', nowMs: T0 });
     expect('place' in row || 'context' in row || 'seat' in row).toBe(false);
+  });
+});
+
+describe('按完之后补标签（contextAdded）', () => {
+  it('补的标签单独存，原来的 context 不动', () => {
+    const e = tap('BOARD', T0, { context: ['accompanied'] });
+    expect(addTag(e, 'replying-messages')).toEqual(['replying-messages']);
+    expect(e.context).toEqual(['accompanied']);
+  });
+
+  it('已经有的标签不重复加', () => {
+    const e = { ...tap('BOARD', T0, { context: ['accompanied'] }), contextAdded: ['unwell'] };
+    expect(addTag(e, 'accompanied')).toBeNull();
+    expect(addTag(e, 'unwell')).toBeNull();
+    expect(addTag(e, 'alone')).toEqual(['unwell', 'alone']);
+  });
+
+  it('读的时候两者合起来；常用标签也一起算', () => {
+    const e = { ...tap('BOARD', T0, { context: ['accompanied'] }), contextAdded: ['returned-for-item'] };
+    expect(allTags(e)).toEqual(['accompanied', 'returned-for-item']);
+    expect(topTags([e, { ...e, id: 'x' }]).slice(0, 2)).toEqual(['accompanied', 'returned-for-item']);
+  });
+
+  it('TSV 里单独一列', () => {
+    const e = { ...tap('BOARD', T0), contextAdded: ['alone', 'unwell'] };
+    const [header, line] = toTsv([e]).trim().split('\n');
+    const col = header!.split('\t').indexOf('contextAdded');
+    expect(line!.split('\t')[col]).toBe('alone,unwell');
   });
 });
 

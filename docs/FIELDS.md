@@ -112,6 +112,7 @@
 | autoTrigger | string | 快捷指令自动打点的来源，如 `auto-leave-home` |
 | observer | enum | 新增取值：device（快捷指令等设备自动观测）；这时 recordedBy 写快捷指令 |
 | reviewNote／reviewSource／reviewedBy／reviewedAt | string／enum／string／ISO 时刻 | 事后复核：复核意见、依据、谁、何时。原值不动 |
+| contextAdded | string[] | 按完之后补的情境标签（slug）。`context` 只存按下之前点的，两者分开，事后补的可以打折看。读的时候取两者的并集。正式版（app-0.1）起有 |
 
 复核字段的取值：
 

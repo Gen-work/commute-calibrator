@@ -78,6 +78,7 @@ export type CheckpointEvent = {
   reviewSource?: ReviewSource;
   reviewedBy?: string; // 'self' 或代记的 agent 名
   reviewedAt?: string;
+  contextAdded?: string[]; // 按完之后补的标签；context 只存按下之前点的
 };
 
 /** 坐没坐到。midway＝中途坐下（通常先记 none，坐下时再记一行 midway）。临时记录器也用这三个值 */
@@ -104,6 +105,7 @@ export const ANNOTATION_FIELDS = [
   'reviewSource',
   'reviewedBy',
   'reviewedAt',
+  'contextAdded',
 ] as const;
 export type AnnotationField = (typeof ANNOTATION_FIELDS)[number];
 export type Annotation = Partial<Pick<CheckpointEvent, AnnotationField>>;

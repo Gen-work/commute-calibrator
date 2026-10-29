@@ -8,6 +8,8 @@ import { toJson, toTsv } from './recorder/export';
 import { eventLabel, nextOptions, sessionEnded, type NextOption } from './recorder/next';
 import {
   SESSION_GAP_MS,
+  addTag,
+  allTags,
   buildRow,
   currentSession,
   defaultDirection,
@@ -37,6 +39,7 @@ export function App() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
   const [customNode, setCustomNode] = useState('');
+  const [justRecorded, setJustRecorded] = useState<string | null>(null); // 按完补标签的对象
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export function App() {
   // 「同上」只带上一条的站名；上一条没填就不猜（下车那站没写时，不能把出发站带过去）
   const prevPlace = events.at(-1)?.place;
   const chips = useMemo(() => topTags(rows), [rows]);
+  const last = rows.find((r) => r.id === justRecorded);
 
   async function record(option: NextOption, atMs: number) {
     if (!store) return;
@@ -114,6 +118,15 @@ export function App() {
     setPlace('');
     setNote('');
     setPending(null);
+    setJustRecorded(row.id);
+    await reload();
+  }
+
+  async function addAfter(tag: string) {
+    const row = rows.find((r) => r.id === justRecorded);
+    const next = row ? addTag(row, tag) : null;
+    if (!store || !row || !next) return;
+    await store.annotate(row.id, { contextAdded: next }, new Date().toISOString());
     await reload();
   }
 
@@ -221,6 +234,11 @@ export function App() {
                       {tagLabel(c)}
                     </span>
                   ))}
+                  {e.contextAdded?.map((c) => (
+                    <span key={c} className="tag added" title="按完之后补的">
+                      {tagLabel(c)}
+                    </span>
+                  ))}
                   {e.note && <span className="note">{e.note}</span>}
                 </li>
               ))}
@@ -244,6 +262,25 @@ export function App() {
           </div>
         )}
 
+        {last && (
+          <div className="after" role="group" aria-label="给刚记的这一条补标签">
+            <span className="after-head">
+              补给刚记的「{last.event === 'SEATED' ? SEAT_LABEL[last.seat ?? 'seated'] : eventLabel(last.event, last.direction)}」
+              <button className="close" aria-label="不补了" onClick={() => setJustRecorded(null)}>
+                ×
+              </button>
+            </span>
+            <div className="chips">
+              {chips.map((c) => (
+                <button key={c} aria-pressed={allTags(last).includes(c)} onClick={() => void addAfter(c)}>
+                  {tagLabel(c)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {last && <span className="after-head">加在下一下</span>}
         <div className="chips" role="group" aria-label="情境（只加在下一下）">
           {chips.map((c) => (
             <button

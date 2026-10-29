@@ -23,6 +23,7 @@ const COLUMNS: { name: string; get: (e: CheckpointEvent) => unknown }[] = [
   { name: 'seat', get: (e) => e.seat },
   { name: 'transfer', get: (e) => e.transfer },
   { name: 'context', get: (e) => e.context?.join(',') },
+  { name: 'contextAdded', get: (e) => e.contextAdded?.join(',') },
   { name: 'serviceStatus', get: (e) => e.serviceStatus },
   { name: 'serviceStatusCorrected', get: (e) => e.serviceStatusCorrected },
   { name: 'observer', get: (e) => e.observer },

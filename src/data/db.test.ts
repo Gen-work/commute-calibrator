@@ -96,6 +96,14 @@ describe('事后追加', () => {
     expect(row.serviceStatusCorrected).toBe('disrupted');
   });
 
+  it('按完补的标签写进 contextAdded；context 是原值，改不了', async () => {
+    const row = await store.annotate(id, { contextAdded: ['accompanied'] }, '2000-01-01T23:30:00.000Z');
+    expect(row.contextAdded).toEqual(['accompanied']);
+    await expect(
+      store.annotate(id, { context: ['alone'] } as never, '2000-01-01T23:30:00.000Z'),
+    ).rejects.toThrow(/原值/);
+  });
+
   it('想改原值字段会被拒绝，什么都不写', async () => {
     await expect(
       store.annotate(id, { event: 'BOARD' } as never, '2000-01-01T23:30:00.000Z'),

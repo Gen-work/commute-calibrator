@@ -187,6 +187,38 @@ input {
   padding: 2px 8px;
 }
 
+.tag.added {
+  background: transparent;
+  border: 1px dashed var(--accent);
+}
+
+.after {
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 6px 8px 8px;
+}
+
+.after-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: -4px;
+}
+
+.after .after-head {
+  margin-bottom: 4px;
+}
+
+.after .close {
+  min-height: 32px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+}
+
 .tools {
   color: var(--muted);
   padding: 4px 0 8px;
