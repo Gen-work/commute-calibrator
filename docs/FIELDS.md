@@ -120,3 +120,12 @@
 - `reviewedBy`：`self`（自查）或代记的 agent 名
 - `reviewNote`：自由文字。自查卡的固定写法有「自查：这几条是一起补按的」「自查：不是补按」「自查：坐没坐到不记得」「自查：站名不记得」「自查：终点不记得」
 
+
+## 导入旧记录
+
+- 认两种输入：临时记录器的 raw JSON（`{meta, events}` 或纯数组；本 app 导出的 JSON 也是这个形状），以及「复制全部记录」的 TSV（有表头按表头读；没有表头按 v2 的列顺序：schemaVersion、observer、observedAt、sessionId、direction、event、place、car、context、serviceStatus、note）。
+- 原样存进库，不在导入时改写；读出时照常按 `schemaVersion` 升级。
+- 没有 `id` 的行按「sessionId-按键毫秒」生成，和记录器的 id 规则一致，所以同一行从 TSV 和 JSON 各导一次也认得出来。
+- 库里已有同 id 的行：内容一样就跳过；不一样就保留库里的，把不同的字段列给本人看。只在库里有的字段（在 app 里事后追加的）不算不同。
+- 标签表里没有的标签照原样保存，导入前列出来，由本人决定要不要收进标签表。
+- 本 app 导出的 TSV 是升级后给表格看的，不能当备份导回；要恢复数据用 JSON。

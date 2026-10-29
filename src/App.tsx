@@ -22,6 +22,7 @@ import {
   topTags,
 } from './recorder/session';
 import { effectiveTime } from './data/db';
+import { ImportPanel } from './ImportPanel';
 import './App.css';
 
 type Pending = { option: NextOption; atMs: number };
@@ -248,9 +249,10 @@ export function App() {
       </section>
 
       <details className="tools">
-        <summary>导出</summary>
-        <button onClick={() => void exportAs('json')}>JSON（原样）</button>
-        <button onClick={() => void exportAs('tsv')}>TSV（表格用）</button>
+        <summary>导入／导出</summary>
+        <button onClick={() => void exportAs('json')}>导出 JSON（原样，可导回）</button>
+        <button onClick={() => void exportAs('tsv')}>导出 TSV（表格用）</button>
+        {store && <ImportPanel store={store} onImported={reload} />}
       </details>
 
       <footer className="thumb">

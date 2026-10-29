@@ -228,6 +228,53 @@ input {
   margin: 8px 8px 0 0;
 }
 
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--fg);
+}
+
+.import .file input {
+  display: block;
+  margin-top: 4px;
+  min-height: auto;
+  border: none;
+  padding: 4px 0;
+}
+
+.import textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.import .preview {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.import .preview ul {
+  margin: 4px 0;
+  padding-left: 1.2em;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.import .go {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+}
+
 .thumb {
   position: sticky;
   bottom: 0;
